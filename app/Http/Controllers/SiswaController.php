@@ -10,11 +10,13 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class SiswaController extends Controller
 {
     public function index(): View
     {
+        
         $siswas = DB::table('siswas')
             ->join('users', 'siswas.id_user', '=', 'users.id')
             ->select(
@@ -24,6 +26,7 @@ class SiswaController extends Controller
                 'siswas.hp' 
             );
 
+       
         if (request('cari')) {
             $siswas = $this->search(request('cari')); 
         } else {
@@ -39,8 +42,8 @@ class SiswaController extends Controller
     }
 
     public function store(Request $request): RedirectResponse
-    { 
-       
+    {
+        
         $validated = $request->validate([
             'name' => 'required|string|max:250',
             'email' => 'required|email|max:250|unique:users',
@@ -55,9 +58,9 @@ class SiswaController extends Controller
 
     
         $image = $request->file('image');
-        $imagePath = $image->storeAs('siswas', $image->hashName(), 'public'); 
+        $imagePath = $image->storeAs('siswas', $image->hashName(), 'public');
 
-       
+
         $id_akun = $this->insertAccount($request->name, $request->email, $request->password);
 
         Siswa::create([
@@ -71,11 +74,11 @@ class SiswaController extends Controller
             'status' => 1 
         ]);
 
-    
+      
         return redirect()->route('siswa.index')->with(['success' => 'Data Berhasil Disimpan!']);
     }
 
-   
+    
     public function insertAccount(string $name, string $email, string $password)
     {
         User::create([
@@ -85,14 +88,14 @@ class SiswaController extends Controller
             'usertype' => 'siswa'
         ]);
 
-    
+
         $id = DB::table('users')->where('email', $email)->value('id');
         return $id;
     }
 
     public function show(string $id): View
     {
-       
+
         $siswa = DB::table('siswas')
             ->join('users', 'siswas.id_user', '=', 'users.id')
             ->select(
@@ -122,7 +125,6 @@ class SiswaController extends Controller
     }
     public function edit(string $id): View
     {
-        
         $siswa = DB::table('siswas')
             ->join('users', 'siswas.id_user', '=', 'users.id')
             ->select(
@@ -203,5 +205,4 @@ public function destroyUser(string $id)
     $user = User::findOrFail($siswa);
 
     $user->delete();
-}
-}
+}}
