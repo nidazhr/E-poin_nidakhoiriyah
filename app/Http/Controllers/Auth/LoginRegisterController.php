@@ -6,10 +6,19 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use App\Models\User;
+use App\Models\Siswa;
+use Illuminate\Http\RedirectResponse;
 
 class LoginRegisterController extends Controller
 {
+    public function index()
+    {
+        $users = User::latest()->paginate(10);
+        return view('admin.akun.create', compact('users'));
+    }
+
     public function register()
     {
         return view('auth.register');
@@ -17,31 +26,24 @@ class LoginRegisterController extends Controller
 
     public function store(Request $request)
     {
-        // Validasi data input
         $request->validate([
             'name' => 'required|string|max:250',
             'email' => 'required|email|max:250|unique:users',
             'password' => 'required|min:8|confirmed',
         ]);
         
-        // Buat user baru
-        User::create([
+        $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'usertype' => 'admin'
         ]);
 
-        // Autentikasi user
-        $credentials = $request->only('email', 'password');
-        Auth::attempt($credentials);
+        Auth::login($user);
         $request->session()->regenerate();
 
-        // Cek tipe user dan arahkan ke dashboard yang sesuai
-        if ($request->user()->usertype == 'admin') {
-            return redirect('admin/dashboard')->with('success', 'You have successfully registered & logged in!');
-        }
-        return redirect()->intended(route('dashboard'));
+        return redirect()->route($user->usertype === 'admin' ? 'admin.dashboard' : 'dashboard')
+                         ->with('success', 'You have successfully registered & logged in!');
     }
 
     public function login()
@@ -51,39 +53,95 @@ class LoginRegisterController extends Controller
 
     public function authenticate(Request $request)
     {
-        // Validasi data input login
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required',
         ]);
 
-        // Cek kredensial
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-
-            // Cek tipe user dan arahkan ke dashboard yang sesuai
-            if ($request->user()->usertype == 'admin') {
-                return redirect('admin/dashboard')->with('success', 'You have successfully logged in!');
-            }
-            return redirect()->intended(route('admin.dashboard'));
+            
+            return redirect()->route(Auth::user()->usertype === 'admin' ? 'admin.dashboard' : 'dashboard')
+                             ->with('success', 'You have successfully logged in!');
         }
 
-        return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ])->onlyInput('email');
+        return back()->withErrors(['email' => 'The provided credentials do not match our records.'])
+                     ->onlyInput('email');
     }
 
     public function logout(Request $request)
     {
-        // Logout user
         Auth::logout();
-
-        // Invalidate session
         $request->session()->invalidate();
-
-        // Regenerate session token
         $request->session()->regenerateToken();
 
         return redirect()->route('login')->with('success', 'You have logged out successfully!');
+    }
+
+    public function update(Request $request, $id): RedirectResponse
+    {
+        $request->validate([
+            'name' => 'required|string|max:250',
+            'usertype' => 'required'
+        ]);
+
+        $user = User::findOrFail($id);
+        $user->update([
+            'name' => $request->name,
+            'usertype' => $request->usertype
+        ]);
+
+        return redirect()->route('akun.edit', $id)->with('success', 'Data Berhasil Diubah!');
+    }
+
+    public function updateEmail(Request $request, $id): RedirectResponse
+    {
+        $request->validate([
+            'email' => 'required|email|max:250|unique:users,email,' . $id
+        ]);
+
+        $user = User::findOrFail($id);
+        $user->update(['email' => $request->email]);
+
+        return redirect()->route('akun.edit', $id)->with('success', 'Email Berhasil Diubah!');
+    }
+
+    public function updatePassword(Request $request, $id): RedirectResponse
+    {
+        $request->validate([
+            'password' => 'required|min:8|confirmed'
+        ]);
+
+        $user = User::findOrFail($id);
+        $user->update(['password' => Hash::make($request->password)]);
+
+        return redirect()->route('akun.edit', $id)->with('success', 'Password Berhasil Diubah!');
+    }
+
+    public function destroy($id): RedirectResponse
+    {
+        $siswa = Siswa::where('id_user', $id)->first();
+
+        if ($siswa) {
+            $this->destroySiswa($siswa->id);
+        }
+
+        $user = User::find($id);
+        if ($user) {
+            $user->delete();
+        }
+
+        return redirect()->route('akun.index')->with('success', 'Akun Berhasil Dihapus');
+    }
+
+    public function destroySiswa($id)
+    {
+        $siswa = Siswa::findOrFail($id);
+
+        if ($siswa->image) {
+            Storage::delete('public/siswa/' . $siswa->image);
+        }
+
+        $siswa->delete();
     }
 }

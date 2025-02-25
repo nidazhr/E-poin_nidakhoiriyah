@@ -8,6 +8,8 @@
 </head>
 <body>
     <a class="nav-link" href="{{ route('siswa.index') }}">Data Siswa</a>
+    <a class="nav-link" href="{{ route('akun.index') }}">Data Akun</a>
+    <a class="nav-link" href="{{ route('pelanggaran.index') }}">Data Pelanggaran</a>
     <a href="{{ route('logout') }}" onclick="event.preventDefault(); documen.getElementById('logout-from').submit();">Logout</a>
     <from id="logout-from" action="{{ route('logout') }}" method="POST">
         @csrf
@@ -25,3 +27,4 @@
 
  </footer>
  </html>
+ 
