@@ -12,10 +12,11 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-6">
-                @yield('content')
+                <?php echo $__env->yieldContent('content'); ?>
             </div>
         </div>
     </div>
 
 </body>
 </html>
+<?php /**PATH C:\laragon\www\E-poin_nidakhoiriyah\resources\views/auth/layouts.blade.php ENDPATH**/ ?>

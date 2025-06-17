@@ -145,3 +145,4 @@ class LoginRegisterController extends Controller
         $siswa->delete();
     }
 }
+ 
